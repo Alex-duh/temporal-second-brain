@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Second Brain — Knowledge Heatmap</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d0d14;
+      color: #e2e2f0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    #graph-container { width: 100vw; height: 100vh; position: relative; }
+    svg { width: 100%; height: 100%; }
+
+    .link {
+      stroke: #3a3a5c;
+      stroke-width: 1.2px;
+      stroke-opacity: 0.55;
+      transition: stroke-opacity 0.2s;
+    }
+    .link.highlighted {
+      stroke: #ffffff;
+      stroke-opacity: 0.9;
+      stroke-width: 1.8px;
+    }
+
+    .node circle.body {
+      stroke-width: 2px;
+      cursor: pointer;
+      transition: filter 0.2s;
+    }
+    .node circle.body:hover { filter: brightness(1.35); }
+    .node.selected circle.body { filter: brightness(1.5) drop-shadow(0 0 8px currentColor); }
+    .node.rediscovery circle.body { stroke-dasharray: 5 3; }
+
+    .node.bridge circle.pulse-ring {
+      fill: none;
+      stroke-opacity: 0;
+      animation: pulse-expand 2.4s ease-out infinite;
+    }
+    @keyframes pulse-expand {
+      0%   { r: 0;    stroke-opacity: 0.7; }
+      100% { r: 28px; stroke-opacity: 0;   }
+    }
+
+    .node text {
+      pointer-events: none;
+      fill: #d0d0e8;
+      font-size: 10.5px;
+      text-anchor: middle;
+      dominant-baseline: hanging;
+      user-select: none;
+    }
+
+    /* ── Info Panel ──────────────────────────────────────────── */
+    #info-panel {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      width: 320px;
+      background: rgba(18, 18, 32, 0.96);
+      border: 1px solid #2e2e50;
+      border-radius: 12px;
+      padding: 20px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+      display: none;
+      z-index: 100;
+      animation: slide-in 0.18s ease;
+    }
+    @keyframes slide-in {
+      from { transform: translateY(12px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+    #info-panel.visible { display: block; }
+
+    #info-panel .domain-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      color: #0d0d14;
+    }
+    #info-panel h2 {
+      font-size: 14px; font-weight: 600; line-height: 1.4;
+      margin-bottom: 12px; color: #f0f0ff;
+    }
+    #info-panel .meta-row {
+      display: flex; justify-content: space-between;
+      font-size: 11px; color: #8888aa; margin-bottom: 5px;
+    }
+    #info-panel .meta-row span:last-child { color: #b0b0cc; font-weight: 500; }
+    #info-panel .section-label {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
+      color: #5555aa; margin-top: 14px; margin-bottom: 6px;
+    }
+    #info-panel .related-list {
+      list-style: none; display: flex; flex-wrap: wrap; gap: 5px;
+    }
+    #info-panel .related-list li {
+      font-size: 10px; padding: 2px 8px; border-radius: 4px;
+      background: #1e1e38; color: #9090cc; cursor: pointer;
+      border: 1px solid #2a2a48; transition: background 0.15s;
+    }
+    #info-panel .related-list li:hover { background: #2a2a50; color: #d0d0ff; }
+    #info-panel .rediscovery-tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; color: #f5a623;
+      background: rgba(245,166,35,0.12);
+      border: 1px solid rgba(245,166,35,0.3);
+      border-radius: 6px; padding: 4px 10px; margin-top: 10px;
+    }
+    .close-btn {
+      position: absolute; top: 12px; right: 14px;
+      background: none; border: none; color: #555580;
+      font-size: 18px; cursor: pointer; line-height: 1;
+      padding: 2px 4px; border-radius: 4px;
+    }
+    .close-btn:hover { color: #aaaacc; background: #1e1e38; }
+
+    /* ── Legend ──────────────────────────────────────────────── */
+    #legend {
+      position: fixed; top: 24px; left: 24px;
+      background: rgba(18, 18, 32, 0.92);
+      border: 1px solid #2e2e50; border-radius: 10px;
+      padding: 14px 16px; z-index: 100; min-width: 180px;
+    }
+    #legend h3 {
+      font-size: 10px; text-transform: uppercase;
+      letter-spacing: 0.12em; color: #5555aa; margin-bottom: 10px;
+    }
+    .legend-row {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 7px; font-size: 11.5px; color: #c0c0dd;
+    }
+    .legend-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+    .legend-dot.bridge { box-shadow: 0 0 6px 2px #e74c3c88; }
+    .legend-separator { border: none; border-top: 1px solid #2a2a44; margin: 9px 0; }
+    .legend-symbol-row {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 6px; font-size: 11px; color: #9090bb;
+    }
+    .legend-dashed {
+      width: 20px; height: 11px; border-radius: 50%;
+      border: 2px dashed #888; flex-shrink: 0;
+    }
+    .legend-size-row { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+    .legend-size-row span { font-size: 10.5px; color: #7070aa; }
+    .legend-circle-sm { width: 8px; height: 8px; border-radius: 50%; background: #555580; }
+    .legend-circle-lg { width: 18px; height: 18px; border-radius: 50%; background: #555580; }
+
+    /* ── Misc UI ─────────────────────────────────────────────── */
+    #title {
+      position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+      font-size: 13px; font-weight: 600; letter-spacing: 0.06em;
+      color: #6060a0; text-transform: uppercase;
+      pointer-events: none; z-index: 100;
+    }
+    #demo-badge {
+      position: fixed; top: 50px; left: 50%; transform: translateX(-50%);
+      font-size: 10px; color: #44446a; letter-spacing: 0.06em;
+      pointer-events: none; z-index: 100;
+    }
+    #hint {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      font-size: 10.5px; color: #3a3a66; pointer-events: none;
+      z-index: 100; letter-spacing: 0.04em;
+    }
+  </style>
+</head>
+<body>
+
+<div id="graph-container"><svg id="graph"></svg></div>
+
+<div id="title">Second Brain — Knowledge Heatmap</div>
+<div id="demo-badge">demo data · replace with your own wiki</div>
+
+<div id="legend">
+  <h3>Domain</h3>
+  <div class="legend-row"><div class="legend-dot" style="background:#4A90D9"></div> work</div>
+  <div class="legend-row"><div class="legend-dot" style="background:#9B59B6"></div> learning</div>
+  <div class="legend-row"><div class="legend-dot" style="background:#27AE60"></div> project-ideas</div>
+  <div class="legend-row"><div class="legend-dot" style="background:#E67E22"></div> personal</div>
+  <div class="legend-row"><div class="legend-dot" style="background:#1ABC9C"></div> research</div>
+  <div class="legend-row"><div class="legend-dot bridge" style="background:#E74C3C"></div> bridges ✦ pulse</div>
+  <hr class="legend-separator">
+  <div class="legend-symbol-row"><div class="legend-dashed"></div> rediscovery ⚠</div>
+  <div class="legend-size-row">
+    <div class="legend-circle-sm"></div><span>few links</span>
+    <div class="legend-circle-lg"></div><span>many</span>
+  </div>
+</div>
+
+<div id="info-panel">
+  <button class="close-btn" onclick="closePanel()">×</button>
+  <div id="panel-badge" class="domain-badge"></div>
+  <h2 id="panel-title"></h2>
+  <div class="meta-row"><span>Created</span><span id="panel-created"></span></div>
+  <div class="meta-row"><span>Updated</span><span id="panel-updated"></span></div>
+  <div class="meta-row"><span>Heat</span><span id="panel-heat"></span></div>
+  <div class="meta-row"><span>Backlinks</span><span id="panel-backlinks"></span></div>
+  <div id="panel-rediscovery-wrap"></div>
+  <div class="section-label">Related Articles</div>
+  <ul class="related-list" id="panel-related"></ul>
+</div>
+
+<div id="hint">scroll to zoom · drag nodes · click to inspect</div>
+
+<script src="https://unpkg.com/d3@7/dist/d3.min.js"></script>
+<script>
+// ── Demo Data ────────────────────────────────────────────────────────────────
+// This file ships with fake data so the template looks good out of the box.
+// When Claude compiles YOUR wiki, it regenerates this file with your real articles.
+
+const DOMAIN_COLOR = {
+  "work":          "#4A90D9",
+  "learning":      "#9B59B6",
+  "project-ideas": "#27AE60",
+  "personal":      "#E67E22",
+  "research":      "#1ABC9C",
+  "bridges":       "#E74C3C",
+};
+
+const nodes = [
+  // work
+  { id: "work/q4-roadmap",
+    title: "Q4 Product Roadmap",
+    domain: "work", date_created: "2024-10-01", last_updated: "2024-12-15",
+    rediscovery: false, heat: 7, backlinks: 6,
+    related: ["work/client-feedback","work/sprint-retros","work/hiring-plan",
+              "bridges/strategy-and-learning","bridges/automation-at-work"] },
+
+  { id: "work/client-feedback",
+    title: "Client Feedback Patterns",
+    domain: "work", date_created: "2024-09-10", last_updated: "2024-11-20",
+    rediscovery: false, heat: 4, backlinks: 3,
+    related: ["work/q4-roadmap","work/sprint-retros","bridges/strategy-and-learning"] },
+
+  { id: "work/sprint-retros",
+    title: "Sprint Retrospective Notes",
+    domain: "work", date_created: "2024-07-01", last_updated: "2024-11-01",
+    rediscovery: false, heat: 3, backlinks: 3,
+    related: ["work/q4-roadmap","work/client-feedback","work/hiring-plan"] },
+
+  { id: "work/hiring-plan",
+    title: "Engineering Hiring Plan 2025",
+    domain: "work", date_created: "2024-11-05", last_updated: "2024-12-01",
+    rediscovery: false, heat: 2, backlinks: 2,
+    related: ["work/q4-roadmap","work/sprint-retros"] },
+
+  // learning
+  { id: "learning/systems-thinking",
+    title: "Systems Thinking — Meadows",
+    domain: "learning", date_created: "2024-03-12", last_updated: "2024-11-30",
+    rediscovery: false, heat: 8, backlinks: 5,
+    related: ["learning/ml-fundamentals","learning/decision-making",
+              "bridges/strategy-and-learning","bridges/automation-at-work"] },
+
+  { id: "learning/ml-fundamentals",
+    title: "Machine Learning Fundamentals",
+    domain: "learning", date_created: "2024-05-20", last_updated: "2024-12-10",
+    rediscovery: false, heat: 5, backlinks: 4,
+    related: ["learning/systems-thinking","learning/transformer-architecture",
+              "research/llm-survey","bridges/automation-at-work"] },
+
+  { id: "learning/transformer-architecture",
+    title: "Transformer Architecture Deep Dive",
+    domain: "learning", date_created: "2024-06-01", last_updated: "2024-10-15",
+    rediscovery: false, heat: 4, backlinks: 3,
+    related: ["learning/ml-fundamentals","research/llm-survey","project-ideas/local-llm-tool"] },
+
+  { id: "learning/decision-making",
+    title: "Decision-Making Under Uncertainty",
+    domain: "learning", date_created: "2023-11-01", last_updated: "2024-02-14",
+    rediscovery: true, heat: 1, backlinks: 2,
+    related: ["learning/systems-thinking","personal/weekly-review-habit"] },
+
+  // project-ideas
+  { id: "project-ideas/local-llm-tool",
+    title: "Local LLM Summarizer Tool",
+    domain: "project-ideas", date_created: "2024-10-20", last_updated: "2024-12-18",
+    rediscovery: false, heat: 6, backlinks: 3,
+    related: ["project-ideas/note-tagging-automation","learning/transformer-architecture",
+              "bridges/automation-at-work"] },
+
+  { id: "project-ideas/note-tagging-automation",
+    title: "Automatic Note Tagging Pipeline",
+    domain: "project-ideas", date_created: "2024-11-10", last_updated: "2024-12-05",
+    rediscovery: false, heat: 3, backlinks: 2,
+    related: ["project-ideas/local-llm-tool","bridges/automation-at-work"] },
+
+  { id: "project-ideas/habit-tracker",
+    title: "Minimal Habit Tracker App",
+    domain: "project-ideas", date_created: "2023-08-15", last_updated: "2023-10-01",
+    rediscovery: true, heat: 0, backlinks: 1,
+    related: ["personal/weekly-review-habit"] },
+
+  // personal
+  { id: "personal/weekly-review-habit",
+    title: "Weekly Review System",
+    domain: "personal", date_created: "2024-01-07", last_updated: "2024-12-13",
+    rediscovery: false, heat: 5, backlinks: 3,
+    related: ["personal/morning-routine","learning/decision-making","project-ideas/habit-tracker"] },
+
+  { id: "personal/morning-routine",
+    title: "Morning Routine Experiments",
+    domain: "personal", date_created: "2024-02-01", last_updated: "2024-09-20",
+    rediscovery: false, heat: 2, backlinks: 1,
+    related: ["personal/weekly-review-habit"] },
+
+  // research
+  { id: "research/llm-survey",
+    title: "Survey: LLMs for Knowledge Management",
+    domain: "research", date_created: "2024-07-15", last_updated: "2024-11-22",
+    rediscovery: false, heat: 4, backlinks: 3,
+    related: ["learning/ml-fundamentals","learning/transformer-architecture",
+              "bridges/automation-at-work"] },
+
+  { id: "research/rag-techniques",
+    title: "RAG Retrieval Techniques",
+    domain: "research", date_created: "2024-09-01", last_updated: "2024-12-01",
+    rediscovery: false, heat: 3, backlinks: 2,
+    related: ["research/llm-survey","bridges/automation-at-work"] },
+
+  // bridges
+  { id: "bridges/strategy-and-learning",
+    title: "BRIDGE: Strategic Thinking & Learning",
+    domain: "bridges", date_created: "2024-12-01", last_updated: "2024-12-18",
+    rediscovery: false, heat: 5, backlinks: 3,
+    related: ["work/q4-roadmap","work/client-feedback","learning/systems-thinking"] },
+
+  { id: "bridges/automation-at-work",
+    title: "BRIDGE: AI Automation at Work",
+    domain: "bridges", date_created: "2024-12-10", last_updated: "2024-12-18",
+    rediscovery: false, heat: 7, backlinks: 6,
+    related: ["work/q4-roadmap","learning/systems-thinking","learning/ml-fundamentals",
+              "project-ideas/local-llm-tool","project-ideas/note-tagging-automation",
+              "research/llm-survey","research/rag-techniques"] },
+];
+
+// ── Build deduplicated edges ──────────────────────────────────────────────────
+
+const nodeById = new Map(nodes.map(n => [n.id, n]));
+const edgeSet  = new Set();
+const links    = [];
+
+nodes.forEach(n => {
+  n.related.forEach(tid => {
+    if (!nodeById.has(tid)) return;
+    const key = [n.id, tid].sort().join("||");
+    if (!edgeSet.has(key)) {
+      edgeSet.add(key);
+      links.push({ source: n.id, target: tid });
+    }
+  });
+});
+
+// ── Compute backlinks if not hardcoded (for dynamically regenerated data) ────
+const backlinksCount = new Map(nodes.map(n => [n.id, 0]));
+nodes.forEach(n => n.related.forEach(tid => {
+  if (backlinksCount.has(tid)) backlinksCount.set(tid, backlinksCount.get(tid) + 1);
+}));
+nodes.forEach(n => { if (n.backlinks == null) n.backlinks = backlinksCount.get(n.id) || 0; });
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const MIN_R = 8, SCALE_R = 2.2;
+const radius = d => MIN_R + (d.backlinks || 0) * SCALE_R;
+
+function shortLabel(title) {
+  const clean = title.replace(/^BRIDGE:\s*/i, "");
+  return clean.length > 28 ? clean.slice(0, 26) + "…" : clean;
+}
+
+// ── D3 Setup ──────────────────────────────────────────────────────────────────
+
+const svg = d3.select("#graph");
+const W = () => window.innerWidth;
+const H = () => window.innerHeight;
+
+const zoomGroup = svg.append("g");
+svg.call(d3.zoom().scaleExtent([0.2, 5])
+  .on("zoom", e => zoomGroup.attr("transform", e.transform)));
+
+const simulation = d3.forceSimulation(nodes)
+  .force("link", d3.forceLink(links).id(d => d.id)
+    .distance(d => {
+      const b = d.source.domain === "bridges" || d.target.domain === "bridges";
+      return b ? 130 : 95;
+    }).strength(0.5))
+  .force("charge", d3.forceManyBody().strength(d => -180 - (d.backlinks || 0) * 15))
+  .force("center", d3.forceCenter(W() / 2, H() / 2))
+  .force("collision", d3.forceCollide().radius(d => radius(d) + 20))
+  .force("x", d3.forceX(W() / 2).strength(0.04))
+  .force("y", d3.forceY(H() / 2).strength(0.04));
+
+// Links
+const linkSel = zoomGroup.append("g").selectAll("line")
+  .data(links).join("line").attr("class", "link");
+
+// Nodes
+const nodeSel = zoomGroup.append("g").selectAll("g.node")
+  .data(nodes).join("g")
+  .attr("class", d => ["node", d.domain === "bridges" ? "bridge" : "", d.rediscovery ? "rediscovery" : ""].filter(Boolean).join(" "))
+  .call(d3.drag()
+    .on("start", (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+    .on("drag",  (e, d) => { d.fx = e.x; d.fy = e.y; })
+    .on("end",   (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }))
+  .on("click", (e, d) => { e.stopPropagation(); showPanel(d); highlightNode(d); });
+
+// Pulse ring (bridges only)
+nodeSel.filter(d => d.domain === "bridges")
+  .append("circle").attr("class", "pulse-ring").attr("r", 0)
+  .attr("stroke", d => DOMAIN_COLOR[d.domain]).attr("stroke-width", 2.5)
+  .style("animation-delay", (_, i) => `${i * 0.7}s`);
+
+// Body
+nodeSel.append("circle").attr("class", "body")
+  .attr("r", d => radius(d))
+  .attr("fill", d => DOMAIN_COLOR[d.domain] || "#888")
+  .attr("fill-opacity", d => d.domain === "bridges" ? 0.92 : 0.82)
+  .attr("stroke", d => d3.color(DOMAIN_COLOR[d.domain] || "#888").brighter(d.domain === "bridges" ? 0.6 : 0.3))
+  .style("filter", d => d.domain === "bridges" ? `drop-shadow(0 0 7px ${DOMAIN_COLOR[d.domain]}99)` : "none");
+
+// Labels
+nodeSel.append("text").attr("dy", d => radius(d) + 5).text(d => shortLabel(d.title));
+
+// Background click to deselect
+svg.on("click", () => { clearHighlight(); closePanel(); });
+
+// Tick
+simulation.on("tick", () => {
+  linkSel.attr("x1", d => d.source.x).attr("y1", d => d.source.y)
+         .attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+  nodeSel.attr("transform", d => `translate(${d.x},${d.y})`);
+});
+
+// ── Highlight ─────────────────────────────────────────────────────────────────
+
+function highlightNode(d) {
+  const connected = new Set([d.id, ...d.related]);
+  nodes.forEach(n => { if (n.related.includes(d.id)) connected.add(n.id); });
+  nodeSel.classed("selected", n => n.id === d.id);
+  nodeSel.selectAll("circle.body").attr("fill-opacity", n => connected.has(n.id) ? 0.95 : 0.15);
+  nodeSel.selectAll("text").attr("fill-opacity", n => connected.has(n.id) ? 1 : 0.2);
+  linkSel.classed("highlighted", l => l.source.id === d.id || l.target.id === d.id)
+         .attr("stroke-opacity", l => (l.source.id === d.id || l.target.id === d.id) ? 0.9 : 0.06);
+}
+
+function clearHighlight() {
+  nodeSel.classed("selected", false);
+  nodeSel.selectAll("circle.body").attr("fill-opacity", d => d.domain === "bridges" ? 0.92 : 0.82);
+  nodeSel.selectAll("text").attr("fill-opacity", 1);
+  linkSel.classed("highlighted", false).attr("stroke-opacity", 0.55);
+}
+
+// ── Panel ─────────────────────────────────────────────────────────────────────
+
+function showPanel(d) {
+  const color = DOMAIN_COLOR[d.domain] || "#888";
+  const badge = document.getElementById("panel-badge");
+  badge.textContent = d.domain;
+  badge.style.background = color;
+  document.getElementById("panel-title").textContent      = d.title;
+  document.getElementById("panel-created").textContent    = d.date_created;
+  document.getElementById("panel-updated").textContent    = d.last_updated;
+  document.getElementById("panel-heat").textContent       = "🔥".repeat(Math.min(d.heat, 8)) + ` (${d.heat})`;
+  document.getElementById("panel-backlinks").textContent  = `${d.backlinks} incoming`;
+  document.getElementById("panel-rediscovery-wrap").innerHTML = d.rediscovery
+    ? `<div class="rediscovery-tag">⚠ Rediscovery candidate — >60 days old</div>` : "";
+
+  const relList = document.getElementById("panel-related");
+  relList.innerHTML = "";
+  if (!d.related.length) {
+    relList.innerHTML = `<li style="color:#55557a;cursor:default">— none —</li>`;
+  } else {
+    d.related.forEach(rid => {
+      const rel = nodeById.get(rid);
+      const li  = document.createElement("li");
+      li.textContent = rel ? shortLabel(rel.title) : rid.split("/")[1];
+      li.title = rel ? rel.title : rid;
+      if (rel) li.style.borderColor = DOMAIN_COLOR[rel.domain] || "#888";
+      li.addEventListener("click", e => { e.stopPropagation(); if (rel) { showPanel(rel); highlightNode(rel); }});
+      relList.appendChild(li);
+    });
+  }
+  document.getElementById("info-panel").classList.add("visible");
+}
+
+function closePanel() { document.getElementById("info-panel").classList.remove("visible"); }
+
+// ── Resize ────────────────────────────────────────────────────────────────────
+
+window.addEventListener("resize", () => {
+  simulation.force("center", d3.forceCenter(W() / 2, H() / 2))
+    .force("x", d3.forceX(W() / 2).strength(0.04))
+    .force("y", d3.forceY(H() / 2).strength(0.04))
+    .alpha(0.15).restart();
+});
+</script>
+</body>
+</html>

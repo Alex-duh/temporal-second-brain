@@ -1,0 +1,30 @@
+# ── Personal source material — never push these ───────────────────
+raw/
+
+# ── Generated knowledge base — stays local ────────────────────────
+wiki/
+
+# ── Personal outputs — stay local ─────────────────────────────────
+# Your real heatmap and query results never get pushed
+outputs/
+
+# ── Ingestion log — local tracking only ───────────────────────────
+raw/.ingested
+
+# ── Claude conversation exports ────────────────────────────────────
+conversations.json
+memories.json
+projects.json
+users.json
+
+# ── Personal documents ─────────────────────────────────────────────
+*.pdf
+*.docx
+*.pptx
+
+# ── Obsidian vault files ───────────────────────────────────────────
+.obsidian/
+Welcome.md
+
+# ── System files ──────────────────────────────────────────────────
+.DS_Store
