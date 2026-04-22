@@ -8,8 +8,9 @@ wiki/
 # Your real heatmap and query results never get pushed
 outputs/
 
-# ── Ingestion log — local tracking only ───────────────────────────
+# ── Ingestion tracking — local only ──────────────────────────────
 raw/.ingested
+raw/processed_files.json
 
 # ── Claude conversation exports ────────────────────────────────────
 conversations.json
@@ -22,8 +23,9 @@ users.json
 *.docx
 *.pptx
 
-# ── Obsidian vault files ───────────────────────────────────────────
-.obsidian/
+# ── Obsidian — commit config, ignore personal workspace state ─────
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
 Welcome.md
 
 # ── System files ──────────────────────────────────────────────────

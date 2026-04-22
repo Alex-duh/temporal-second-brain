@@ -1,0 +1,58 @@
+{
+  "collapse-filter": true,
+  "search": "-path:wiki/INDEX -path:wiki/HEATMAP",
+  "showTags": true,
+  "showAttachments": false,
+  "hideUnresolved": true,
+  "showOrphans": true,
+  "collapse-color-groups": false,
+  "colorGroups": [
+    {
+      "query": "tag:#heat/hot",
+      "color": {
+        "a": 1,
+        "rgb": 16724736
+      }
+    },
+    {
+      "query": "tag:#heat/warm",
+      "color": {
+        "a": 1,
+        "rgb": 16753920
+      }
+    },
+    {
+      "query": "tag:#heat/cool",
+      "color": {
+        "a": 1,
+        "rgb": 3329330
+      }
+    },
+    {
+      "query": "tag:#heat/cold",
+      "color": {
+        "a": 1,
+        "rgb": 49151
+      }
+    },
+    {
+      "query": "tag:#heat/dormant",
+      "color": {
+        "a": 1,
+        "rgb": 10265519
+      }
+    }
+  ],
+  "collapse-display": true,
+  "showArrow": false,
+  "textFadeMultiplier": 0,
+  "nodeSizeMultiplier": 1.2185302734375,
+  "lineSizeMultiplier": 1.02552897135417,
+  "collapse-forces": false,
+  "centerStrength": 0.269816080729167,
+  "repelStrength": 4.55973307291667,
+  "linkStrength": 0.535441080729167,
+  "linkDistance": 90,
+  "scale": 1.8694336487129055,
+  "close": false
+}

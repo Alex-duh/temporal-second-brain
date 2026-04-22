@@ -1,0 +1,21 @@
+{
+  "enableInlineDataview": true,
+  "enableDataviewJs": true,
+  "enableInlineDataviewJs": true,
+  "allowHtml": true,
+  "inlineQueryPrefix": "=",
+  "inlineJsQueryPrefix": "=$",
+  "renderNullAs": "–",
+  "warnOnEmptyResult": false,
+  "refreshEnabled": true,
+  "refreshInterval": 30000,
+  "defaultDateFormat": "yyyy-MM-dd",
+  "defaultDateTimeFormat": "yyyy-MM-dd HH:mm",
+  "maxRecursiveRenderDepth": 4,
+  "tableIdColumnName": "File",
+  "tableGroupColumnName": "Group",
+  "showResultCount": true,
+  "prettyRenderInlineFields": true,
+  "taskLinkType": "minimal",
+  "taskLinkText": "🔗"
+}

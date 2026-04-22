@@ -1,0 +1,72 @@
+/* ═══════════════════════════════════════════════════════════════
+   SECOND BRAIN — Domain Color System
+   Applies color coding to file explorer, graph view, and in-note
+   elements based on wiki folder structure.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Color Variables ── */
+:root {
+  --color-ai-research:    #4F8EF7;
+  --color-iris-project:   #9B5DE5;
+  --color-debate:         #F15152;
+  --color-bridges:        #FFD700;
+  --color-research:       #06D6A0;
+  --color-college-apps:   #FF6B9D;
+  --color-personal-ideas: #FFD60A;
+  --color-cs-concepts:    #2EC4B6;
+  --color-apush:          #F4A261;
+  --color-physics:        #48CAE4;
+}
+
+/* ── File Explorer: Individual File Titles ── */
+.nav-file-title[data-path^="wiki/ai-research"]    { color: var(--color-ai-research) !important; }
+.nav-file-title[data-path^="wiki/iris-project"]   { color: var(--color-iris-project) !important; }
+.nav-file-title[data-path^="wiki/debate"]         { color: var(--color-debate) !important; }
+.nav-file-title[data-path^="wiki/bridges"]        { color: var(--color-bridges) !important; font-weight: 600; }
+.nav-file-title[data-path^="wiki/research"]       { color: var(--color-research) !important; }
+.nav-file-title[data-path^="wiki/college-apps"]   { color: var(--color-college-apps) !important; }
+.nav-file-title[data-path^="wiki/personal-ideas"] { color: var(--color-personal-ideas) !important; }
+.nav-file-title[data-path^="wiki/cs-concepts"]    { color: var(--color-cs-concepts) !important; }
+.nav-file-title[data-path^="wiki/apush"]          { color: var(--color-apush) !important; }
+.nav-file-title[data-path^="wiki/physics"]        { color: var(--color-physics) !important; }
+
+/* ── File Explorer: Folder Title Colors ── */
+.nav-folder-title[data-path="wiki/ai-research"]    .nav-folder-title-content { color: var(--color-ai-research); font-weight: 600; }
+.nav-folder-title[data-path="wiki/iris-project"]   .nav-folder-title-content { color: var(--color-iris-project); font-weight: 600; }
+.nav-folder-title[data-path="wiki/debate"]         .nav-folder-title-content { color: var(--color-debate); font-weight: 600; }
+.nav-folder-title[data-path="wiki/bridges"]        .nav-folder-title-content { color: var(--color-bridges); font-weight: 700; }
+.nav-folder-title[data-path="wiki/research"]       .nav-folder-title-content { color: var(--color-research); font-weight: 600; }
+.nav-folder-title[data-path="wiki/college-apps"]   .nav-folder-title-content { color: var(--color-college-apps); font-weight: 600; }
+.nav-folder-title[data-path="wiki/personal-ideas"] .nav-folder-title-content { color: var(--color-personal-ideas); font-weight: 600; }
+.nav-folder-title[data-path="wiki/cs-concepts"]    .nav-folder-title-content { color: var(--color-cs-concepts); font-weight: 600; }
+.nav-folder-title[data-path="wiki/apush"]          .nav-folder-title-content { color: var(--color-apush); font-weight: 600; }
+.nav-folder-title[data-path="wiki/physics"]        .nav-folder-title-content { color: var(--color-physics); font-weight: 600; }
+
+/* ── Bridges folder: special glow indicator ── */
+.nav-folder-title[data-path="wiki/bridges"] {
+    border-left: 3px solid var(--color-bridges);
+    padding-left: 4px;
+}
+
+/* ── Raw folder: muted to visually separate source files ── */
+.nav-folder-title[data-path="raw"] .nav-folder-title-content {
+    color: var(--text-faint);
+    font-style: italic;
+}
+
+/* ── Tag styling for domain tags if added inline ── */
+a.tag[href="#ai-research"]    { background-color: var(--color-ai-research) !important; color: #fff !important; }
+a.tag[href="#iris-project"]   { background-color: var(--color-iris-project) !important; color: #fff !important; }
+a.tag[href="#debate"]         { background-color: var(--color-debate) !important; color: #fff !important; }
+a.tag[href="#bridges"]        { background-color: var(--color-bridges) !important; color: #000 !important; }
+a.tag[href="#research"]       { background-color: var(--color-research) !important; color: #000 !important; }
+a.tag[href="#college-apps"]   { background-color: var(--color-college-apps) !important; color: #fff !important; }
+a.tag[href="#personal-ideas"] { background-color: var(--color-personal-ideas) !important; color: #000 !important; }
+a.tag[href="#cs-concepts"]    { background-color: var(--color-cs-concepts) !important; color: #000 !important; }
+a.tag[href="#apush"]          { background-color: var(--color-apush) !important; color: #000 !important; }
+a.tag[href="#physics"]        { background-color: var(--color-physics) !important; color: #000 !important; }
+
+/* ── Graph view legend hint (color-group list items) ── */
+.graph-color-button {
+    border-radius: 4px;
+}

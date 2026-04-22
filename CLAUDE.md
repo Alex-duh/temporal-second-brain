@@ -41,6 +41,13 @@ heat: 0  # increment each time this article is referenced or updated
 - Any idea older than 60 days not referenced elsewhere → set rediscovery: true
 - When two notes from different dates contradict → flag as "temporal conflict"
 - Increment heat score each time an article gets updated or linked to
+- After updating heat or last_updated, recalculate and update the `tags:` field:
+  - score = max(0, days_since_last_updated - heat * 5)
+  - score ≤ 7   → tags: ["heat/hot"]      (red in graph)
+  - score ≤ 30  → tags: ["heat/warm"]     (orange in graph)
+  - score ≤ 90  → tags: ["heat/cool"]     (green in graph)
+  - score ≤ 180 → tags: ["heat/cold"]     (blue in graph)
+  - score > 180 → tags: ["heat/dormant"]  (gray in graph)
 
 ## Cross-domain Rule:
 - If a concept appears in 2+ domains, create a separate "bridge" article
@@ -48,12 +55,21 @@ heat: 0  # increment each time this article is referenced or updated
 - These bridge articles are the most valuable — prioritize them
 
 ## Incremental Ingestion (tracking already-processed files):
-- After ingesting a file from raw/, append its filename and a timestamp to raw/.ingested
-- Format: `filename | YYYY-MM-DD HH:MM`
-- When asked to "update" or "ingest new files", read raw/.ingested first, then skip any file already listed
-- Always re-process a file if the user explicitly names it, regardless of .ingested
-- raw/.ingested is gitignored and stays local — it is purely a local tracking log
-- If raw/.ingested doesn't exist yet, create it before starting ingestion
+- Manifest lives at `raw/processed_files.json`
+- Before ingesting, read the manifest and skip any filename already listed under `"files"`
+- After ingesting, add or update the entry:
+  ```json
+  "filename.md": {
+    "ingested_at": "YYYY-MM-DDTHH:MM:SS",
+    "wiki_articles": ["wiki/domain/article.md"],
+    "domains": ["domain-name"],
+    "content_type": "note|paper|conversation|research|document"
+  }
+  ```
+- Always re-process a file if the user explicitly names it — update the entry with a fresh `ingested_at`
+- If `processed_files.json` doesn't exist, create it with `{"version": 1, "last_updated": "...", "files": {}}`
+- Update `last_updated` at the top-level each time the manifest is written
+- This file is gitignored and stays local
 
 ## Linting (run periodically):
 - Find orphaned articles with no backlinks
